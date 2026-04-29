@@ -1,0 +1,872 @@
+{
+  "info": {
+    "name": "Agence Voyage - Admin CRUD Hotels Voyages Vols",
+    "description": "Collection Postman pour tester les endpoints admin uniquement (CRUD Hotels, Voyages, Vols).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "adminSetupKey", "value": "CHANGE_ME_ADMIN_SETUP_KEY" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "admin123" },
+    { "key": "adminToken", "value": "" },
+    { "key": "gestionnaireEmail", "value": "gestionnaire@example.com" },
+    { "key": "gestionnairePassword", "value": "gestion123" },
+    { "key": "gestionnaireToken", "value": "" },
+    { "key": "clientEmail", "value": "client.reservation@example.com" },
+    { "key": "clientPassword", "value": "secret123" },
+    { "key": "clientToken", "value": "" },
+    { "key": "clientNoResEmail", "value": "client.noreservation@example.com" },
+    { "key": "clientNoResPassword", "value": "secret123" },
+    { "key": "clientNoResToken", "value": "" },
+    { "key": "reservationId", "value": "" },
+    { "key": "avisId", "value": "" },
+    { "key": "konnectPaymentRef", "value": "" },
+    { "key": "hotelId", "value": "" },
+    { "key": "hotelId2", "value": "" },
+    { "key": "voyageId", "value": "" },
+    { "key": "volId", "value": "" },
+    { "key": "volId2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 - Bootstrap first admin (run once)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201 or 400', () => pm.expect([201, 400]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-admin-setup-key", "value": "{{adminSetupKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prenom\": \"Super\",\n  \"nom\": \"Admin\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"genre\": \"homme\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/bootstrap-admin",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "bootstrap-admin"]
+        }
+      }
+    },
+    {
+      "name": "01 - Login admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Role is admin', () => pm.expect(j.role).to.eql('admin'));",
+              "pm.collectionVariables.set('adminToken', j.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "01b - Register client (optional first run)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 or 400', () => pm.expect([201, 400]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prenom\": \"Client\",\n  \"nom\": \"Reservation\",\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\",\n  \"genre\": \"homme\",\n  \"cin\": \"33221100\",\n  \"telephone\": \"+21611112222\",\n  \"dateNaissance\": \"1998-01-01\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "01c - Login client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Role is client', () => pm.expect(j.role).to.eql('client'));",
+              "pm.collectionVariables.set('clientToken', j.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "01c2 - Register second client (no reservation)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 or 400', () => pm.expect([201, 400]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prenom\": \"Client\",\n  \"nom\": \"NoReservation\",\n  \"email\": \"{{clientNoResEmail}}\",\n  \"password\": \"{{clientNoResPassword}}\",\n  \"genre\": \"femme\",\n  \"cin\": \"99887766\",\n  \"telephone\": \"+21622223333\",\n  \"dateNaissance\": \"1997-03-10\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "01c3 - Login second client (no reservation)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Role is client', () => pm.expect(j.role).to.eql('client'));",
+              "pm.collectionVariables.set('clientNoResToken', j.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{clientNoResEmail}}\",\n  \"password\": \"{{clientNoResPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "01d - Admin create gestionnaire",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 or 400', () => pm.expect([201, 400]).to.include(pm.response.code));",
+              "if (pm.response.code === 201) {",
+              "  const j = pm.response.json();",
+              "  pm.test('Role is gestionnaire', () => pm.expect(j.role).to.eql('gestionnaire'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prenom\": \"Gestion\",\n  \"nom\": \"User\",\n  \"email\": \"{{gestionnaireEmail}}\",\n  \"password\": \"{{gestionnairePassword}}\",\n  \"genre\": \"homme\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/gestionnaires",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "gestionnaires"]
+        }
+      }
+    },
+    {
+      "name": "01e - Login gestionnaire",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Role is gestionnaire', () => pm.expect(j.role).to.eql('gestionnaire'));",
+              "pm.collectionVariables.set('gestionnaireToken', j.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{gestionnaireEmail}}\",\n  \"password\": \"{{gestionnairePassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "01f - Gestionnaire cannot create gestionnaire (expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{gestionnaireToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prenom\": \"Second\",\n  \"nom\": \"Gestionnaire\",\n  \"email\": \"second.gestionnaire@example.com\",\n  \"password\": \"gestion123\",\n  \"genre\": \"femme\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/gestionnaires",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "gestionnaires"]
+        }
+      }
+    },
+    {
+      "name": "01g - Gestionnaire can create hotel",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{gestionnaireToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Hotel Gestionnaire\",\n  \"adresse\": \"Avenue Test\",\n  \"ville\": \"Sousse\",\n  \"pays\": \"Tunisie\",\n  \"etoiles\": 3,\n  \"description\": \"Cree par gestionnaire\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels"]
+        }
+      }
+    },
+    {
+      "name": "02 - Create hotel",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('hotelId', j._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Hotel Carthage\",\n  \"adresse\": \"Avenue Habib Bourguiba\",\n  \"ville\": \"Tunis\",\n  \"pays\": \"Tunisie\",\n  \"etoiles\": 4,\n  \"description\": \"Hotel premium centre ville\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels"]
+        }
+      }
+    },
+    {
+      "name": "03 - Get hotels",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels"]
+        }
+      }
+    },
+    {
+      "name": "03b - Create second hotel",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('hotelId2', j._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Hotel Medina\",\n  \"adresse\": \"Centre historique\",\n  \"ville\": \"Marrakech\",\n  \"pays\": \"Maroc\",\n  \"etoiles\": 4,\n  \"description\": \"Hotel du second stop\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels"]
+        }
+      }
+    },
+    {
+      "name": "04 - Update hotel",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"etoiles\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels/{{hotelId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels", "{{hotelId}}"]
+        }
+      }
+    },
+    {
+      "name": "05 - Create voyage",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('voyageId', j._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titre\": \"Circuit Afrique du Nord\",\n  \"prix\": 2200,\n  \"capacite\": 20,\n  \"dateDepart\": \"2026-07-01\",\n  \"dateRetour\": \"2026-07-08\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/voyages",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "voyages"]
+        }
+      }
+    },
+    {
+      "name": "06 - Get voyages",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/voyages",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "voyages"]
+        }
+      }
+    },
+    {
+      "name": "07 - Update voyage",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prix\": 2100\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/voyages/{{voyageId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "voyages", "{{voyageId}}"]
+        }
+      }
+    },
+    {
+      "name": "07b - Client create reservation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('reservationId', j._id);",
+              "pm.test('Status en_attente', () => pm.expect(j.status).to.eql('en_attente'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"voyage\": \"{{voyageId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations"]
+        }
+      }
+    },
+    {
+      "name": "07c - Client get my reservations",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/mine",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", "mine"]
+        }
+      }
+    },
+    {
+      "name": "07d - Admin list all reservations",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations"]
+        }
+      }
+    },
+    {
+      "name": "07e - Admin accept reservation (sends email)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "if (j.paymentReference) pm.collectionVariables.set('konnectPaymentRef', j.paymentReference);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"confirmee\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", "{{reservationId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "07f - Admin cancel reservation (optional)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"annulee\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", "{{reservationId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "07f2 - Simulate Konnect webhook paid (optional)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"paymentRef\": \"{{konnectPaymentRef}}\",\n  \"status\": \"paid\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/paiements/konnect/webhook",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "paiements", "konnect", "webhook"]
+        }
+      }
+    },
+    {
+      "name": "07f3 - Client without reservation cannot add avis (expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{clientNoResToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"voyage\": \"{{voyageId}}\",\n  \"note\": 4,\n  \"commentaire\": \"Tentative sans reservation\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/avis",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "avis"]
+        }
+      }
+    },
+    {
+      "name": "07g - Client add avis on voyage",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('avisId', j._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"voyage\": \"{{voyageId}}\",\n  \"note\": 5,\n  \"commentaire\": \"Voyage excellent, très bien organisé\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/avis",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "avis"]
+        }
+      }
+    },
+    {
+      "name": "07h - Get all avis (public)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/avis",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "avis"]
+        }
+      }
+    },
+    {
+      "name": "07i - Client update own avis",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"note\": 4,\n  \"commentaire\": \"Très bon voyage globalement\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/avis/{{avisId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "avis", "{{avisId}}"]
+        }
+      }
+    },
+    {
+      "name": "08 - Create vol",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('volId', j._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"depart\": \"Tunis\",\n  \"arrivee\": \"Marrakech\",\n  \"dateDepart\": \"2026-07-01T08:00:00.000Z\",\n  \"dateArrivee\": \"2026-07-01T10:00:00.000Z\",\n  \"description\": {\n    \"jour1\": \"sortie de decouvrir\",\n    \"jour2\": \"aller a la plage\"\n  },\n  \"voyage\": \"{{voyageId}}\",\n  \"hotel\": \"{{hotelId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/vols",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "vols"]
+        }
+      }
+    },
+    {
+      "name": "09 - Get vols",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/vols",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "vols"]
+        }
+      }
+    },
+    {
+      "name": "09b - Create second vol (different hotel)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.collectionVariables.set('volId2', j._id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"depart\": \"Marrakech\",\n  \"arrivee\": \"Tripoli\",\n  \"dateDepart\": \"2026-07-02T09:00:00.000Z\",\n  \"dateArrivee\": \"2026-07-02T12:00:00.000Z\",\n  \"description\": {\n    \"jour3\": \"transfert vers nouvel hotel\"\n  },\n  \"voyage\": \"{{voyageId}}\",\n  \"hotel\": \"{{hotelId2}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/vols",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "vols"]
+        }
+      }
+    },
+    {
+      "name": "10 - Update vol",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": {\n    \"jour1\": \"visite du centre-ville\",\n    \"jour2\": \"retour libre\"\n  },\n  \"hotel\": \"{{hotelId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/vols/{{volId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "vols", "{{volId}}"]
+        }
+      }
+    },
+    {
+      "name": "11 - Delete vol",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/vols/{{volId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "vols", "{{volId}}"]
+        }
+      }
+    },
+    {
+      "name": "11b - Delete second vol",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/vols/{{volId2}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "vols", "{{volId2}}"]
+        }
+      }
+    },
+    {
+      "name": "11c - Client delete own avis (optional)",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{clientToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/avis/{{avisId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "avis", "{{avisId}}"]
+        }
+      }
+    },
+    {
+      "name": "12 - Delete voyage",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/voyages/{{voyageId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "voyages", "{{voyageId}}"]
+        }
+      }
+    },
+    {
+      "name": "13 - Delete hotel",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels/{{hotelId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels", "{{hotelId}}"]
+        }
+      }
+    },
+    {
+      "name": "14 - Delete second hotel",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/hotels/{{hotelId2}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "hotels", "{{hotelId2}}"]
+        }
+      }
+    }
+  ]
+}
